@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!--
+<style>
+.button{
+    border:none;
+    colir: black;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+.rbutton{background-color: #FF0000;}
+.bbutton{background-color: #0000FF;}
+</style>
+-->
+
+Coco Luo <br>
+CSC363/663 <br>
+Incredible Triangle Example <br>
+<br>
+<br>
+
+STARTUP:  Vertex Shader <br>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+    // VERTEX SHADER
+    // This is called and applied to every vertex. The vertex
+    // in this shader has three "attributes", a position (vPosition)
+    // a color (vColor) and a type (vType)
+    //
+    // This shader assigns the position (vPosition) to gl_Position,
+    // the color (vColor) to fColor (which is passed to the fragment shader)
+    // and the type (vType) to fType
+
+    // attributes vPosition, vColor, and vType passed from application
+    // via buffers
+    attribute vec4 vPosition;
+    attribute vec4 vColor;
+    attribute float vType;
+
+    // varying fColor, passed from vertex shader
+    // to fragment shader
+    varying vec4 fColor;
+
+    // two uniforms
+    uniform float beta;
+    uniform float xi;
+
+    void
+    main()
+    {
+
+    //apply transformation to vertex of type "1.0"
+    if (abs(vType-1.0) < 0.0001)
+    {
+        gl_Position =
+            //apply rotation on z-axis (matrix in column major order)
+            mat4(-1.0*sin(beta), 1.0*cos(beta), 0.0, 0.0,
+                 1.0*cos(beta), 1.0*sin(beta), 0.0, 0.0,
+                 0.0, 0.0, 1.0, 0.0,
+                 0.0, 0.0, 0.0, 1.5) *
+                 vPosition;
+    }
+    else if (abs(vType-6.0) < 0.0001){
+        gl_Position =
+            //apply scaling and displacement on x (matrix in column major order)
+            mat4(1.2, 0.0, 0.0, -0.2*xi,
+                 0.0, 1.2, 0.0, 0.0,
+                 0.0, 0.0, 1.2, 0.0,
+                 0.0, 0.0, 0.0, 1.0)*
+                 vPosition;
+    }
+    else if (abs(vType-3.0) < 0.0001){
+        gl_Position =
+            //apply scaling on x (matrix in column major order)
+            mat4(1.2, 0.0, 0.0, 0.0,
+                 0.0, 1.2, 0.0, 0.0,
+                 0.0, 0.0, 1.2, 0.0,
+                 0.0, 0.0, 0.0, 1.0)*
+                 vPosition;
+    }
+    else{
+        gl_Position = vPosition;
+
+    }
+
+     fColor = vColor;
+    }
+</script>
+
+StartUp:  fragment shader <br>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+// FRAGMENT SHADER
+// This is applied to every vertex
+
+// set floating point precision to be "medium"
+precision mediump float;
+
+// varying fColor (passed from vertex shader) is
+// assigned to gl_FragColor.
+varying vec4 fColor;
+void
+main()
+{
+    gl_FragColor = fColor;
+}
+</script>
+
+StartUp:  load java script <br>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="IncredibleTriangle.js"></script>
+
+StartUp:  check for html5 <br>
+<br>
+<br>
+
+<!--
+    create button and sliders for the triangles
+-->
+<!--
+<button class="button rbutton" id="rButton">Triangle #1</button>
+<input type="range" id="dealtaTheta" min="0.0" value="0.0" max="0.3" step="0.01"/>
+<br>
+<button class="button bbutton" id="bButton">Triangle #2</button>
+<input type="range" id="dealtaphi" min="0.0" value="0.0" max="0.8" step="0.02"/>
+<br>
+<br>
+-->
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+    Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+
+
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!--
+    This html document illustrates how to build a document that contains
+         simple 3D image created using drawElements()
+
+     All the text that begins with "HTML StartUp" is provided to help with
+     debugging.
+
+     Coco Luo
+     Nov 2020
+-->
+
+
+<style>
+.button{
+    border:none;
+    colir: black;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+.rbutton{background-color: #0000ff;}
+.bbutton{background-color: #0000ff;}
+.lbutton{background-color: #0000ff;}
+
+</style>
+
+
+
+Coco Luo <br>
+CSC363/663 <br>
+Simple Pyramid <br>
+Perspective Projection & Modelview Matrices <br>
+<br>
+<br>
+
+HTML StartUp:  vertex shader <br>
+
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+    // VERTEX SHADER
+    // This is called and applied to every vertex. The vertex
+    // in this shader has two "attributes", a position (vPosition),
+    // a color (vColor),
+    attribute vec4 vPosition;
+    attribute vec4 vColor;
+    attribute vec4 vNormal;
+
+    // uniforms for angle of rotation (theta) (phi), model view (modelViewMatrix),
+    // and perspective projection (projectionMatrix)
+    uniform float theta;
+    uniform float phi;
+    uniform float alpha;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+
+    // boring varying
+    varying vec4 fColor;
+
+    void
+    main()
+    {
+
+    //values set for this model in vector shader
+    //the first light source that's a combination of three lights
+    float shininess1 = 20.0;
+    vec3 light1 = vec3(2.0, 0.5, 1.0);
+    vec4 ambientProduct1 = vec4(0.6, 0.6, 0.75, 1.0);
+    vec4 diffuseProduct1 = vec4(0.0, 0.3, 0.1, 1.0);
+    vec4 specularProduct1 = vec4(0.9, 0.0, 0.03, 1.0);
+
+    //the second light with pure specular light
+    vec3 light2 = vec3(1.0, 1.0, 1.0);
+    //vec4 ambientProduct2 = vec4(0.6, 0.6, 0.75, 1.0);
+    //vec4 diffuseProduct2 = vec4(0.0, 0.3, 0.1, 1.0);
+    vec4 specularProduct2 = vec4(0.5, 0.0, 0.22, 1.0);
+
+    //current matrix transform
+    mat4 CMT = mat4(cos(theta), 0.0, -sin(theta), 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        sin(theta), 0.0, cos(theta), 0.0,
+                        0.0, 0.0, 0.0, 1.0);
+    //model view * CMT
+    mat4 MVCMT = modelViewMatrix*CMT;
+
+    //apply blinn-PHONG
+    //determine vector from vPosision in modelView back to light
+    vec3 pos = -(MVCMT*vPosition).xyz;
+    vec3 L1 = normalize(light1-pos);
+    vec3 L2 = normalize(light2-pos);
+
+    vec3 E1 = normalize(-pos);
+    vec3 H1 = normalize(L1 + E1);
+
+    vec3 E2 = normalize(-pos);
+    vec3 H2 = normalize(L2 + E2);
+
+    //figure normal to final position
+    vec3 N1 = normalize((MVCMT * vNormal).xyz);
+    vec3 N2 = normalize((MVCMT * vNormal).xyz);
+
+    //determine ambient contribution
+    vec4 ambient1 = ambientProduct1;
+
+    //determine diffuse contribution
+    float Kd1 = max(dot(L1,N1), 0.0);
+    vec4 diffuse1 = Kd1 * diffuseProduct1;
+
+    //determine specular contribution
+    float Ks1 = pow(max(dot(N1,H1), 0.0), shininess1);
+    vec4 specular1 = Ks1 * specularProduct1;
+
+    if (dot(L1,N1) < 0.0) {
+        specular1 = vec4(0.0, 0.0, 0.0, 1.0);
+       }
+
+    // alpha works as shininess
+    // it controls the angle between N and H
+    float Ks2 = pow(max(dot(N2,H2), 0.0), alpha);
+    vec4 specular2 =  Ks2 * specularProduct2;
+
+    if (dot(L2,N2) < 0.0) {
+        specular2 = vec4(0.0, 0.0, 0.0, 1.0);
+       }
+
+    //color use a mixture of ambient, diffuse and specular
+    fColor =  ambient1
+        + diffuse1
+        + specular1
+        + specular2;
+
+    fColor.a = 1.0;
+
+     gl_Position =
+
+                    projectionMatrix *
+
+                    MVCMT *
+
+                     // rotation about y axis (column major order)
+                  //mat4(cos(theta), 0.0, -sin(theta), 0.0,
+                    //   0.0,        1.0, 0.0,        0.0,
+                    //   sin(theta),0.0, cos(theta), 0.0,
+                     //  0.0,        0.0, 0.0,        1.0) *
+
+                     //translation along the axes and scaling
+                 mat4(0.6, 0.0, 0.0, 0.0,
+                      0.0, 0.6, 0.0, 0.0,
+                      0.0, 0.0, 0.6, 0.0,
+                      1.0, -0.25, 0.0, 1.0) *
+
+                      // rotation in the xy plane
+                 mat4(-cos(phi), sin(phi), 0.0, 0.0,
+                      sin(phi), cos(phi), 0.0, 0.0,
+                      0.0, 0.0, 1.0, 0.0,
+                      0.0, 0.0, 0.0, 1.3) *
+
+                    vPosition;
+
+    }
+</script>
+
+
+
+HTML StartUp:  fragment shader <br>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+// FRAGMENT SHADER
+// This is applied to every vertex
+
+// set floating point precision to be "medium"
+precision mediump float;
+
+// varying fColor (passed from vertex shader) is
+// assigned to gl_FragColor.
+varying vec4 fColor;
+
+void
+main()
+{
+    gl_FragColor = fColor;
+}
+
+
+</script>
+
+HTML StartUp:  load java script <br>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="Driver.js"></script>
+
+HTML StartUp:  check for html5 <br>
+<br>
+<br>
+
+
+<!--
+    create button and sliders for the triangles
+-->
+<button class="button rbutton" id="rButton">REVOLVE</button>
+
+<input type="range" id="deltatheta" min="0.0" value="0.0" max="0.3" step="0.01"/>
+
+<br>
+<button class="button bbutton" id="bButton">ROTATE</button>
+<input type="range" id="dealtaphi" min="0.0" value="0.0" max="0.8" step="0.01"/>
+
+<br>
+
+<button class="button lbutton" id="lButton">Specular Light</button>
+<input type="range" id="dealtalpha" min="0.0" value="0.0" max="0.8" step="0.01"/>
+
+<br>
+<br>
+
+
+<! --
+create a html5 canvas, associated with "gl-canvas" with
+width and height 512 pixels
+-->
+<canvas id="gl-canvas" width="512" height="512">
+    Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+
+
+</html>
